@@ -1,0 +1,184 @@
+\documentclass[12pt,a4paper]{article} %,twoside
+
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{textcomp}
+\usepackage{amsmath}
+\usepackage{amsthm} 
+\usepackage{amssymb} 
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{indentfirst}
+\usepackage{wrapfig}
+\usepackage{epstopdf}
+\usepackage{color}
+\usepackage{listings}
+
+
+% Задаю параметры макета страницы, все поля по 2 см
+\oddsidemargin=-13pt
+\topmargin=-66pt %%
+\headheight=12pt %%
+\headsep=38pt
+\textheight=732pt
+\textwidth=484pt
+\marginparsep=14pt
+\marginparwidth=43pt
+\footskip=14pt
+\marginparpush=7pt %%
+\hoffset=0pt %%
+\voffset=0pt %%
+%\paperwidth=597pt %%
+%\paperheight=845pt %%
+
+%New commands.
+\newcounter{StepCounter}
+\newcommand{\step}[1]{\noindent\addtocounter{StepCounter}{1}\arabic{StepCounter}. #1}
+\newcommand{\src}[1]{\textcolor{red}{\lstinline$>#1$}}
+\newcommand{\abs}[1]{\left | #1 \right |}
+%размер табуляции (для красной строки) в начале каждого абзаца
+\parindent=1.5cm
+
+\renewcommand{\baselinestretch}{1.25}
+\newfloat{scheme}{tb}{sch}
+
+\sloppy
+
+% Подавление висячих строк
+\clubpenalty=10000
+\widowpenalty=10000
+
+
+\begin{document}
+
+\include{title}    % вставка титульника
+\newpage
+
+%@m batchload("D:/1.wxm")@
+
+\fontsize{14pt}{15pt}\selectfont
+\normalsize
+\section{Нелинейное уравнение}
+\step{Отделим корень, построив график в Maxima}\\
+	$f(x) = x^5 - x - 0.2 ; \quad x \in [0.9, 1.1]$\\ 
+	%@(defun f(x) (- (expt x 5) x 0.2))@ 
+	%@(defun df(x) (- (* 5 (expt x 4)) 1))@
+	%@(defvar *x0* 1.2)@ @(defvar *e* 0.0001)@ @(defvar *c* 1.6)@ @(defvar *a* 0.4)@
+	\src{plot2d(x^5 - x - 0.2, [x, 0.9, 1.1], [ylabel, "y"]);}
+
+	\begin{figure} [hbt] 
+		\centering
+			\includegraphics{@(plot-tex "plot2d(x^5 - x - 0.2, [x, 0.9, 1.1], [ylabel, \"y\"]")" "1")@}
+		%\caption{график}
+	\end{figure}
+
+	\noindentОдин из корней приближённо равен $x_0 = 1,05$.\\
+	Найдём в Maxima производную данной функции.\\
+	\src{diff(x^5 - x - 0.2, x);}\\
+	\src{@m diff(x^5 - x - 0.2, x)@}\\
+	
+
+
+\step{Уточним корень методом Ньютона.}\\\\
+	@(table2tex (result2table (newton #'f #'df *x* *e*)) :epsilon 5)@
+\newpage
+\step{Метод дихотомии}\\\\
+	@(table2tex (result2table (dihotom #'f *a* *x* *e*)) :epsilon 5)@
+
+\step{Метод ньютона, модифицированный}\\\\
+	@(table2tex (result2table (newton- #'f #'df *x* *e*)) :epsilon 5)@
+
+\step{Метод хорд}\\\\
+	@(table2tex (result2table (hord #'f  *x* *c* *e*)) :epsilon 5)@
+
+\step{Метод секущих}\\\\
+	@(table2tex (result2table (sec #'f  *x* *c* *e*)) :epsilon 5)@
+
+\step{Метод Стеффенсона}\\\\	
+	@(table2tex (result2table (stephansan #'f *x* *e*)) :epsilon 5)@
+
+\normalsize
+	
+
+	\noindentПроверка:\\
+	\src{find_root(x^5 - x - 0.2 = 0, x, 0.9, 1.1);}\\ %@m fpprintprec:6@
+	\src{@m x:find_root(x^5 - x - 0.2 = 0, x, 0.9, 1.1)@}
+
+	\noindentОтвет: $x = @m x@$
+\newpage
+\section{Нелинейная система} \setcounter{StepCounter}{0}
+		%@m f: lambda ([x, y], cos(x) - y + 0.5)@
+		%@m g:lambda ([x, y], y - sqrt(x) - 1)@
+		$\begin{cases}
+			\cos x  - y = -0,5\\
+		 	y  - \sqrt{x} = 1
+		 \end{cases}$\\
+	
+		\step{Изобразим графики функций в одной системе координат для отделения корня.}\\
+		%\begin{wrapfigure}{r}{8cm} % "l" or "r" for the side on the page. And the width parameter for the width of the image space.
+		\begin{figure}[hbt]
+			\centering
+				\includegraphics[scale=1.0]{@m (plot-tex"plot2d([cos(x) + 0.5, 1 + sqrt(x)], [x, 0, 1])" "equation-plot")@}
+			%\caption{Подпись к картинке}
+			%\label{label}
+		%\end{wrapfigure}
+		\end{figure}
+		\src{plot2d([cos(x) + 0.5, 1 + sqrt(x)], [x, 0, 1]);}\\
+		По графику приближённо находим $x \approx 0.2$, $y \approx 1.4$.\\
+		Используем эти значения в качестве нулевого приближения к решению.\\
+		
+		
+		\step{Выпишем формулы для итерационного процесса.}\\
+		 Для этого вычислим частные производные функций\\
+		 $f(x,y) = @m f(x,y)@$\\
+		 $g(x,y) = @m g(x,y)@$\\
+		 Получим: $f_x'= - \sin x = @m fx(x,y)@$, $f_y' = -1 = @m fy(x, y)@$, $g_x = -\frac{1}{2 \sqrt{x}} = @m gx(x, y)@$, $g_y' = 1 = @m gy(x, y)@$\\
+		 Матрица Якоби имеет вид:\\
+		 $\begin{pmatrix}
+			-\sin & -1  \\
+			-\frac{1}{2 \sqrt{x}} & 1 
+		 \end{pmatrix}$\\
+@		$@m J(x,y)@$
+		 Для нахождения $J^{-1}$ используем формулу\\
+		 $J^{-1}= \frac{1}{\abs{J}} \begin{pmatrix} 1 &  1 \\ \frac{1}{2 \sqrt{x}}&-\sin x \end{pmatrix} \Rightarrow $
+		 \begin{tabular}{ l l }
+			$J_{11}^{-1} = \frac{1}{\abs{J}}  g_y' = -\frac{1}{\abs{J}}$&  $J_{12}^{-1} =\frac{1}{\abs{J}} $\\
+			$J_{21}^{-1} = \frac{1}{2 \sqrt{x} \abs{J}}$& $J_{22}^{-1} = - \frac{\sin x}{\abs{J}}$
+		 \end{tabular}\\
+@		 $@m Ji(x, y)@$
+		 $\begin{pmatrix}x\\y\end{pmatrix}^{n+1} = \begin{pmatrix}x\\y \end{pmatrix}^{n} - J^{-1} \begin{pmatrix}x\\y \end{pmatrix}^{n} \begin{pmatrix}f(x^n, y^n)\\ g(x^n. y^n) \end{pmatrix} \Rightarrow \begin{pmatrix}x^{n+1}\\y^{n+1} \end{pmatrix} = \begin{pmatrix}x^n\\y^n \end{pmatrix} - \begin{pmatrix} J_{11}^{-1} & J_{12}^{-1} \\ J_{21}^{-1} & J_{22}^{-1}\end{pmatrix} \begin{pmatrix}f\\g \end{pmatrix} \Rightarrow \begin{cases} x^{n+1} = x^n - J_{11}^{-1}f - J_{12}^{-1}g\\ y^{n+1} = y^n - J_{21}^{-1}f - J_{22}^{-1}g\end{cases} 
+\begin{picture}(0, 20) \put(3,1){\line(-1,1){12}} \put(3,-1){\line(-1,-1){12}} \end{picture}$ расчётные формулы, где \begin{tabular}{l}$f=f(x^n, y^n)$ \\ $g=g(x^n, y^n)$ \end{tabular} 
+\\$J^{-1} = J^{-1} \begin{pmatrix}x^n\\y^n \end{pmatrix}$\\
+		 \newpage\noindentВ таблицу внесём промежуточные вычисления, т. е. $f$, $g$ , $\abs{J}$, $J_{ij}^{-1}$  и оценочные величины \\
+		 $\sigma^{n+1} = max\left\{ \abs{\frac{x^{n+1} - x^n}{x^{n+1}}}; \abs{\frac{y^{n+1} - y^n}{y^{n+1}}} \right\}$\\
+\par\noindent
+		 Дальнейшие вычисления сведём в таблицу\\\\
+		 \begin{tabular}{| c | c | c | c | c | c | c | c | c |}
+i&	x(i)&	y(i)&	f&	g&	fx&	fy&	gx&	gy\\ \hline
+0&	0,2&	1,4&	0,080066578&	-0,047213595&	-0,198669331&	-1&	-1,118033989&	1\\
+1&	0,224950938&	1,475109592	&-0,00030454&	0,000819662&	-0,223058536&	-1&	-1,054207497 & 1\\
+2&	0,225354238	& 1,474715092&	-7,92743E-08&	1,90391E-07&	-0,223451657&	-1&	-1,053263755&	1\\
+\end{tabular}\\\\ \par
+\noindent
+\begin{tabular}{| c | c | c | c | c | c | c | c |}
+i&	|J|&	J11&	J12&	J21&	J22&	x(i+1)&	y(i+1)\\ \hline
+0&	-1,31670332&	-0,75947252&	-0,75947252&	-0,84911610&	0,15088389&	0,22495093&	1,47510959\\
+0&	-1,27726603&	-0,78292225&	-0,78292225&	-0,82536250&	0,17463749&	0,22535423&	1,47471509\\
+0&	-1,27671541&	-0,78325991&	-0,78325991&	-0,82497927&	0,17502072&	0,22535432&	1,47471499\\
+\end{tabular}\\\\ \par
+\noindent
+\begin{tabular}{| c | c | c | c  c  c | }
+i&	dx&	dy&	max&	&	$\varepsilon$\\ \hline
+0&	0,110917242	&0,050917974&	0,110917242	&    >&	0,0005\\
+1&	0,00178963&	0,000267509	& 0,00178963&	>&	0,0005\\
+2&	3,86207E-07&	6,69431E-08&	3,86207E-07&	<&	0,0005\\
+	\end{tabular}\\
+		 
+		 Проверка в Maxima\\
+		 \src{solve([cos(x) + 0.5, 1 + sqrt(x)], [x,y]);}\\
+		 \src{[x = 0,225354238, y = 1,474715092]}\\
+		 
+\par\noindent		 Ответ: $x = 0,225354$ $y =  1,474715$
+\end{document}
